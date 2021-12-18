@@ -1,0 +1,19 @@
+{
+  "name": "iot-docker-swarm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://www-apps.univ-lehavre.fr/forge/gr161657/iot-docker-swarm.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.3.0"
+  }
+}
