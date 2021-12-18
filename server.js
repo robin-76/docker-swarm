@@ -129,8 +129,106 @@ function getInactiveSlaves() {
     return slaves.filter(s => !s.active);
 }
 
+// Initialisation du serveur WebSocket
+function initWebSocket() {
+    webSocketServer.on('connection', (ws) => {
+        ws.on('message', (data) => {
+            console.log('received: %s', data);
+            if (data === 'client') {
+                clientsFront.push(ws);
+                sendNbSlavesToClient();
+            }
+            else if (data === 'slave') {
+                slavesCount++;
+                slaves.push(
+                    new Slave("slave_" + slavesCount, ws)
+                );
+                sendNbSlavesToClient();
+            } else if (data.includes("found")) { // un slave a décodé le hash
+                let split = data.split(" ");
+                let hash = split[1];
+                let solution = split[2];
+                sendToClientsSolution(hash, solution);
+                stopSearch(hash);
+            } else {
+                try {
+                    data = JSON.parse(data);
+                    if (data.hash in clients)
+                        clients[data.hash].push(ws);
+                    else
+                        clients[data.hash] = [ws];
+                    Hash.findOne({ hash: data.hash }, function (err, foundHash) {
+                        if (err || foundHash === null) {
+                            switch (data.difficulty) {
+                                case "1":
+                                    activeInactiveSlaves(difficulty_tab.easy, data.hash);
+                                    break;
+                                case "3":
+                                    activeInactiveSlaves(difficulty_tab.hard, data.hash);
+                                    break;
+                                default:
+                                    activeInactiveSlaves(difficulty_tab.medium, data.hash);
+                            }
+                        } else {
+                            console.log("Hash was already decoded and registered in database")
+                            sendToClientsSolution(foundHash.hash, foundHash.solution);
+                        }
+                    });
+                } catch (Exception) {
+                    console.log(Exception)
+                }
+            }
+        });
+    });
+}
+
+// Envoi la solution à tous les clients
+function sendToClientsSolution(hash, solution) {
+    if (hash in clients) {
+        for (let client of clients[hash]) {
+            client.send(JSON.stringify({ 'type': 'found', 'hash': hash, 'solution': solution }));
+        }
+        delete clients[hash];
+    }
+}
+
+// Arrêt de recherche pour les slaves
+function stopSearch(hash) {
+    if (hash in hashInSearch) {
+        for (let slave of hashInSearch[hash]) {
+            slave.ws.send("exit");
+        }
+        delete hashInSearch[hash];
+        sendNbSlavesToClient();
+    }
+}
+
+// Envoi du nombre de slaves à tous les clients
+function sendNbSlavesToClient() {
+    for (let client of clientsFront)
+        client.send(JSON.stringify({ 'type': 'nbSlaves', 'slaves': slaves.length }));
+}
+
+// Envoi du hash au bon nombre de slaves via l'objet Search
+function activeInactiveSlaves(difficultySearchMode, hash) {
+    let inactiveSlaves = getInactiveSlaves();
+    let slavesForHash = [];
+    for (let i = 0; i < difficultySearchMode.length; i++) {
+        let slave = inactiveSlaves[i];
+        let begin = difficultySearchMode[i].begin;
+        let end = difficultySearchMode[i].end;
+        let emit = "search " + hash + " " + begin + " " + end;
+        console.log("Sent to " + slave.name + " : " + emit);
+        slave.ws.send(emit);
+        slave.active = true;
+        slavesForHash.push(slave);
+    }
+    hashInSearch[hash] = slavesForHash;
+}
+
 
 initSwarmManager();
+initWebSocket();
 
 http.listen(PORT, HOST, () => {
     console.log(`Server launched on http://${HOST}:${PORT}`);
