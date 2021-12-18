@@ -56,11 +56,11 @@ let hashInSearch = {};
 
 // Initialisation de Docker Swarm Manager
 function initSwarmManager() {
-    exec("sudo docker swarm init --advertise-addr 127.0.0.1", (err, _stdout, _stderr) => {
+    exec("docker swarm init --advertise-addr 127.0.0.1", (err, _stdout, _stderr) => {
         if (err) {
             console.log(`error: ${err}`);
 
-            const command = `sudo docker swarm leave --force`
+            const command = `docker swarm leave --force`
             console.log(command);
 
             exec(command, (err, stdout, _stderr) => {
@@ -80,7 +80,7 @@ function initSwarmManager() {
 // Ajout de 5 slaves de l'image hash extractor et initialise checkInactive toutes les 5 secondes
 function createSlaveService() {
     console.log("Creating " + INACTIVE_SLAVES + " slaves using replicas");
-    let command = "sudo docker service create --restart-condition='none' --network='host' --name " + INSTANCE_NAME
+    let command = "docker service create --restart-condition='none' --network='host' --name " + INSTANCE_NAME
     + " --replicas " + INACTIVE_SLAVES + " " + IMAGE + " ./hash_extractor s " + ADDR
     console.log(command)
     exec(command, (err, _stdout, _stderr) => {
@@ -114,7 +114,7 @@ function checkInactive() {
 function scaleSlaves(nbMiss) {
     let slavesTot = slaves.length + nbMiss;
     console.log("Scale slaves to " + slavesTot);
-    let command = "sudo docker service scale " + INSTANCE_NAME + "=" + slavesTot;
+    let command = "docker service scale " + INSTANCE_NAME + "=" + slavesTot;
     exec(command, (err, _stdout, _stderr) => {
         if (err) {
             console.error("Error executing " + command);
@@ -144,12 +144,13 @@ function initWebSocket() {
                     new Slave("slave_" + slavesCount, ws)
                 );
                 sendNbSlavesToClient();
-            } else if (data.includes("found")) { // un slave a décodé le hash
+            } else if (data.includes("found")) { //Un slave a décodé le hash 
                 let split = data.split(" ");
                 let hash = split[1];
                 let solution = split[2];
                 sendToClientsSolution(hash, solution);
                 stopSearch(hash);
+                saveHashInDB(hash, solution);   
             } else {
                 try {
                     data = JSON.parse(data);
@@ -226,6 +227,19 @@ function activeInactiveSlaves(difficultySearchMode, hash) {
     hashInSearch[hash] = slavesForHash;
 }
 
+// Sauvegarde du hash et de la solution dans mongoDB 
+function saveHashInDB(hash, solution) {
+    let newHash = new Hash({
+        hash: hash,
+        solution: solution
+    });
+    newHash.save(function (err, hash) {
+        if (err)
+            console.error(err);
+        else 
+            console.log("New hash : " + hash.hash + " - " + hash.solution);
+    });
+}
 
 initSwarmManager();
 initWebSocket();
