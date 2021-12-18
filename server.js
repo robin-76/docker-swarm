@@ -89,8 +89,46 @@ function createSlaveService() {
             console.error(err);
             return;
         }
+        setInterval(checkInactive, 5000);
     });
 }
+
+// Initialiser un minimum de 5 esclaves inactifs supplémentaires du nombre d'esclaves
+function checkInactive() {
+    let inactifs = getInactiveSlaves().length;
+
+    if (inactifs < INACTIVE_SLAVES) 
+        scaleSlaves(INACTIVE_SLAVES - inactifs);
+    else {
+        let inactiveSlaves = getInactiveSlaves();
+        for (let i = 0; i < inactifs - INACTIVE_SLAVES; i++) {
+            let slave = inactiveSlaves[i];
+            console.log("Closing slave : " + slave.name);
+            slave.ws.send("exit");
+            slaves = slaves.filter(s => s !== slave)
+        }
+    }
+}
+
+// Service de scale slaves
+function scaleSlaves(nbMiss) {
+    let slavesTot = slaves.length + nbMiss;
+    console.log("Scale slaves to " + slavesTot);
+    let command = "sudo docker service scale " + INSTANCE_NAME + "=" + slavesTot;
+    exec(command, (err, _stdout, _stderr) => {
+        if (err) {
+            console.error("Error executing " + command);
+            console.error(err);
+            return;
+        }
+    });
+}
+
+// Retourne le nombre de slaves innactifs
+function getInactiveSlaves() {
+    return slaves.filter(s => !s.active);
+}
+
 
 initSwarmManager();
 
