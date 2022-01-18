@@ -7,33 +7,96 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
     <link rel='stylesheet' href='style.css'>
     <script src='https://use.fontawesome.com/releases/v5.15.4/js/all.js' data-auto-a11y='true'></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/md5.js"></script>
 </head>
-
 
 <body>
 <section class="hero is-info">
     <div class="hero-body">
-        <div class="container has-text-centered">
-            <figure class="image is-128x128">
-                <img src="logo_universite.png" alt="Logo université du Havre">
-            </figure>
-            <p class="title">
-                Docker
-            </p>
-        </div>
+        <p class="title has-text-centered">
+            Docker
+        </p>
     </div>
 </section>
 
 <section>
     <div class="columns">
-        <div class="column is-half is-offset-one-quarter">
-            <div class="box is-shadowless">
+        <div class="column"></div>
+    </div>
 
+    <div class="columns">
+        <div class="column is-half is-offset-one-quarter has-text-centered">
+            <div class="box">
+                <h3 class="title is-3">Form</h3>
+                <div class="columns">
+                    <div class="column is-three-fifths is-offset-one-fifth">
+                        <div class="columns">
+                            <div class="column">
+                                <div id="slaves"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="columns">
+                    <div class="column is-three-fifths is-offset-one-fifth">
+                        <div class="field">
+                            <div class="label"> Password</div>
+                            <div class="control">
+                                <input id="password" class="input is-info" type="text" required placeholder='Insert the password'/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="columns">
+                    <div class="column is-three-fifths is-offset-one-fifth">
+                        <div class="label">Difficulty</div>
+                        <div class="select is-rounded is-info">
+                            <select id="difficulty">
+                                <option selected value="1">Easy</option>
+                                <option value="2">Medium</option>
+                                <option value="3">Hard</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="control">
+                    <a id="submit" class="button is-success is-rounded">Submit</a>
+                </div>
+            </div>
+
+            <div class="box">
+                <h3 class="title is-3">Result(s)</h3>
+                <div class="field">
+                    <div class="columns">
+                        <div class="column is-three-fifths is-offset-one-fifth">
+                            <table class="table is-striped is-hoverable is-fullwidth">
+                                <thead>
+                                <tr>
+                                    <th>Password</th>
+                                    <th>Hash</th>
+                                </tr>
+                                </thead>
+                                <tbody class="results"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="columns">
+                <div class="column"></div>
             </div>
         </div>
     </div>
 </section>
-
 
 <footer class="footer">
     <div class="content has-text-centered">
@@ -51,6 +114,36 @@
     const ws = new WebSocket("ws://127.0.0.1:3000");
     ws.addEventListener("open", () => {
         console.log("We are connected!");
+    });
+
+    ws.onopen = function() {
+        this.send('client');
+        this.onmessage = function(event) {
+            let data = JSON.parse(event.data);
+            if (data.type === 'found') {
+                if (Array.isArray(data)) {
+                    for (let d in data)
+                        $("tbody.results").append("<tr><td>" + d.solution + "</td><td>" + d.hash + "</td></tr>");
+                } else {
+                    $("tbody.results").append("<tr><td>" + data.solution + "</td><td>" + data.hash + "</td></tr>");
+                }
+            } else if (data.type === 'nbSlaves') {
+                document.getElementById('slaves').innerHTML = "The current docker swarm contains " + data.slaves + " slaves";
+            }
+        };
+    };
+
+    const button = document.getElementById("submit");
+    button.addEventListener("click", () => {
+        let password = document.getElementById("password").value;
+        let difficulty = document.getElementById("difficulty").value;
+        if (password !== '') {
+            let toSend = {
+                'hash': CryptoJS.MD5(password).toString(),
+                'difficulty': difficulty
+            }
+            ws.send(JSON.stringify(toSend));
+        }
     });
 </script>
 </html>

@@ -4,8 +4,13 @@ body{
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background-color: lightgrey;
 }
 
-footer{
+footer {
     margin-top: auto;
+}
+
+.input {
+    width: 33%;
 }
