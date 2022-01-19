@@ -82,6 +82,7 @@
                                 <tr>
                                     <th>Password</th>
                                     <th>Hash</th>
+                                    <th>Time (s)</th>
                                 </tr>
                                 </thead>
                                 <tbody class="results"></tbody>
@@ -111,6 +112,9 @@
 </body>
 
 <script>
+    let start;
+    let end;
+
     const ws = new WebSocket("ws://127.0.0.1:3000");
     ws.addEventListener("open", () => {
         console.log("We are connected!");
@@ -121,11 +125,12 @@
         this.onmessage = function(event) {
             let data = JSON.parse(event.data);
             if (data.type === 'found') {
+                end = (Date.now() - start) / 1000;
                 if (Array.isArray(data)) {
                     for (let d in data)
-                        $("tbody.results").append("<tr><td>" + d.solution + "</td><td>" + d.hash + "</td></tr>");
+                        $("tbody.results").append("<tr><td>" + d.solution + "</td><td>" + d.hash + "</td><td>" + end + "</td></tr>");
                 } else {
-                    $("tbody.results").append("<tr><td>" + data.solution + "</td><td>" + data.hash + "</td></tr>");
+                    $("tbody.results").append("<tr><td>" + data.solution + "</td><td>" + data.hash + "</td><td>" + end + "</td></tr>");
                 }
             } else if (data.type === 'nbSlaves') {
                 document.getElementById('slaves').innerHTML = "The current docker swarm contains " + data.slaves + " slaves";
@@ -138,6 +143,8 @@
         let password = document.getElementById("password").value;
         let difficulty = document.getElementById("difficulty").value;
         if (password !== '') {
+            button.removeAttribute("disabled");
+            start = Date.now();
             let toSend = {
                 'hash': CryptoJS.MD5(password).toString(),
                 'difficulty': difficulty
