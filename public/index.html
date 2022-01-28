@@ -115,7 +115,7 @@
     let start;
     let end;
 
-    const ws = new WebSocket("ws://127.0.0.1:3000");
+    const ws = new WebSocket("ws://0.0.0.0:3000");
     ws.addEventListener("open", () => {
         console.log("We are connected!");
     });

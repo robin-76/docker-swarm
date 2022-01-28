@@ -16,7 +16,7 @@ const http = require('http').Server(app);
 const webSocketServer = new WebSocket.Server({ server: http });
 
 // Informations réseaux
-const HOST = 'localhost';
+const HOST = '0.0.0.0';
 const PORT = 3000;
 const ADDR = "ws://" + HOST + ":" + PORT;
 
@@ -53,26 +53,12 @@ let slaves = [];
 let slavesCount = 0;
 let hashInSearch = {};
 
-
 // Initialisation de Docker Swarm Manager
 function initSwarmManager() {
     exec("docker swarm init --advertise-addr 127.0.0.1", (err, _stdout, _stderr) => {
-        if (err) {
+        if (err)
             console.log(`error: ${err}`);
-
-            const command = `docker swarm leave --force`
-            console.log(command);
-
-            exec(command, (err, stdout, _stderr) => {
-                if (err) {
-                    console.log(err);
-                    return;
-                }
-                console.log(stdout)
-                initSwarmManager();
-            })
-            return;
-        } 
+            
         createSlaveService();
     });
 }
@@ -144,7 +130,7 @@ function initWebSocket() {
                     new Slave("slave_" + slavesCount, ws)
                 );
                 sendNbSlavesToClient();
-            } else if (data.includes("found")) { //Un slave a décodé le hash 
+            } else if (data.includes("found")) { // Un slave a décodé le hash 
                 let split = data.split(" ");
                 let hash = split[1];
                 let solution = split[2];
