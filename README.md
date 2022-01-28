@@ -10,7 +10,9 @@
 | *GUYOMAR* | *Robin*|
 | *BOURGEAUX* | *Maxence*|
 
-## Utilisation
+## Utilisations
+
+### Utilisation NodeJS
 
 On commence par installer les dépendances avec la commande :
 
@@ -19,3 +21,17 @@ On commence par installer les dépendances avec la commande :
 Puis on peut lancer le projet avec :
 
     npm start
+
+### Utilisation via Docker
+
+Il suffit de faire les deux commandes suivantes dans un terminal : 
+
+    docker swarm leave --force
+
+Puis
+
+    docker-compose up
+
+Pour quitter, on ouvre un deuxième terminal et on utilise la commande :
+
+    docker-compose down
