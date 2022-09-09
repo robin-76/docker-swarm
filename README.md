@@ -35,3 +35,7 @@ Puis
 Pour quitter, on ouvre un deuxième terminal et on utilise la commande :
 
     docker-compose down
+
+## Capture d'écran
+
+![screenshot](public/DockerSwarm.png)
